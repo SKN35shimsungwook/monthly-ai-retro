@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#6C5CE7"
+
+[server]
+# ChatGPT·Google 테이크아웃 몇 년치 내보내기 파일은 수백 MB일 수 있음
+maxUploadSize = 2000
