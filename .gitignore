@@ -1,0 +1,12 @@
+# 내 PC에서만 쓰는 것 (원본 기록·개인 설정·회고 결과)
+config.local.json
+data/summaries/
+data/rules_override.json
+reports/
+.streamlit/secrets.toml
+__pycache__/
+.venv/
+.pytest_cache/
+data/db/
+data/usage_profile.json
+data/claude_artifacts.json

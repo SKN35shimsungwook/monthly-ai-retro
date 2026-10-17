@@ -1,0 +1,37 @@
+{
+  "label": "sample-2026-11",
+  "kind": "월간",
+  "period": {"since": "2026-11-01", "until": "2026-11-30"},
+  "author": "Claude Code (샘플)",
+  "headline": "할 일 앱과 퀴즈 앱 두 개를 깊게 판 한 달. 요청에 끝난 기준을 붙이기 시작해 재작업이 줄었다.",
+  "summary": {
+    "type": "설계형 — 계획을 먼저 세우고 단계별로 맡긴다",
+    "strengths_top": ["계획을 먼저 세움", "증거를 요구함", "한 주제에 집중"],
+    "weaknesses_top": ["에러를 그대로 붙여넣음", "README 마무리 부족", "주말 몰아서 작업"],
+    "first_action": "에러를 붙일 때 '내가 의심하는 원인'을 한 줄 같이 쓰기"
+  },
+  "usage": {
+    "overview": "할 일 관리 앱과 자격증 퀴즈 앱을 만들었다. 기능마다 계획을 받고 진행했다.",
+    "made": [{"category": "생활 도구", "examples": "할 일 관리 앱", "note": "배포까지 완료"},
+             {"category": "학습 도구", "examples": "자격증 퀴즈 앱", "note": "문항 200개"}],
+    "how": ["계획 요청", "기능 하나씩 구현", "테스트 결과 확인", "커밋"],
+    "habits": ["끝난 기준을 붙인 요청 12.5%", "주말에 메시지의 40%"]
+  },
+  "strengths": [{"title": "계획을 먼저 세움", "d4": "설명", "evidence": "계획 요청 15%", "why": "엉뚱한 방향으로 만드는 일이 줄었다"},
+                {"title": "증거를 요구함", "d4": "분별", "evidence": "'테스트 출력 보여줘' 13회", "why": "확인이 빨라졌다"}],
+  "weaknesses": [{"title": "에러를 그대로 붙여넣음", "d4": "위임", "evidence": "에러 원문만 5회", "why": "원인을 이해하지 못한 채 넘어간다"},
+                 {"title": "README 마무리 부족", "d4": "책임", "evidence": "배포한 앱 2개 중 1개만 README", "why": "남이 보기 어렵다"}],
+  "recommendations": [{"priority": 1, "title": "에러에 내 추측 붙이기", "now": "에러 원문만 붙여넣기",
+                       "better": "이 에러가 났어. 내 생각엔 날짜 변환 문제 같은데 맞는지 설명하고 고쳐줘"}],
+  "change": [{"item": "끝난 기준", "before": "5.1%", "after": "12.5%", "verdict": "좋아짐"}],
+  "person": {"technical": ["구조를 먼저 보는 편"], "working": ["계획형"], "learning": ["예시로 배우는 편"],
+             "social": ["피드백을 잘 받아들임"], "motivation": ["완성의 성취감"]},
+  "goal_candidates": [{"metric": "paste_error_count", "target": 2, "text": "에러 원문만 붙여넣기 2회 이하"},
+                      {"metric": "criteria_rate", "target": 20, "text": "끝난 기준 붙인 요청 20% 이상"}],
+  "totals": {"sessions": 8, "user_messages": 210, "active_days": 19, "commits": 86, "new_repos": 2, "blog_posts": 4},
+  "metrics": {"criteria_rate": 12.5, "plan_first_rate": 15.0, "evidence_rate": 8.1, "overloaded_rate": 6.2,
+              "redo_count": 14, "distrust_count": 3, "interrupt_count": 6, "limit_count": 1,
+              "session_median_msgs": 12, "long_session_count": 1, "multi_day_session_count": 2,
+              "short_go_rate": 9.4, "why_rate": 18.8, "verify_rate": 16.2, "paste_error_count": 5},
+  "limits": ["가상의 샘플입니다"]
+}
