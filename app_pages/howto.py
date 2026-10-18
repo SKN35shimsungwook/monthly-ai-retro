@@ -9,7 +9,7 @@ digraph {
   p [label="사용 실태\n(용도·빈도·시작 시기)"];
   a [label="각 AI의 사용 보고서\n(맞춤 프롬프트)"]; a2 [label="전체 대화 기록\n(내보내기 파일·Claude Code)"]; a3 [label="GitHub 커밋"];
   b [label="민감정보 가리기"]; c [label="로컬 DB"]; d [label="로컬 검색"];
-  e [label="컨설턴트 작성\n(Gemini)"]; f [label="근거 검증"]; w [label="웹 검색\n연계 추천"];
+  e [label="컨설턴트 작성\n(ChatGPT·Gemini)"]; f [label="근거 검증"]; w [label="웹 검색\n연계 추천"];
   g [label="리포트 · 타임라인 · 묻기"];
   p -> a; a -> b; a2 -> b; a3 -> b; b -> c -> d -> e -> f -> g; f -> e [label="재시도", fontsize=10];
   f -> w -> g;
@@ -32,4 +32,4 @@ with st.container(border=True):
         "2. **3 리포트 만들기**: 기간 '지난달' → 기준선·지난 목표와 자동 비교\n"
         "3. **2 리포트**에서 👍/👎·목표 고르기 → **3 타임라인**에서 변화 보기 → 궁금한 건 **4 묻기**")
 
-st.caption("원본 기록은 이 PC(data/db)에만 있고 커밋되지 않습니다. Gemini에는 검색으로 고른 일부 기록(가린 것)·통계·각 AI의 보고서만 보냅니다.")
+st.caption("원본 기록은 이 PC(data/db)에만 있고 커밋되지 않습니다. AI(초기 총정리는 ChatGPT API, 월간은 Gemini)에는 검색으로 고른 일부 기록(가린 것)·통계·각 AI의 보고서만 보냅니다. 단계마다 중간 저장되어, 한도에 걸려 멈춰도 이어서 만들 수 있습니다.")

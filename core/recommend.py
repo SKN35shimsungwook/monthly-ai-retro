@@ -12,7 +12,7 @@ from typing import Callable, TypedDict
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
-from core.llm import CONSULTANT_SYSTEM, parse_json, text_of
+from core.llm import CONSULTANT_SYSTEM, call_with_retry, parse_json, provider_of, text_of
 
 MAX_ATTEMPTS = 3
 _S = re.compile(r"\bS(\d+)\b")
@@ -64,14 +64,14 @@ class RecState(TypedDict, total=False):
     attempts: int
 
 
-def gemini_web_search(api_key: str, model: str) -> Callable[[str], tuple[str, list[dict]]]:
+def gemini_web_search(api_key: str, model: str, notify=None) -> Callable[[str], tuple[str, list[dict]]]:
     """Google 검색이 연결된 Gemini 호출. (조사 글, 출처 목록[{title, uri}])을 돌려준다."""
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=api_key)
 
-    def run(prompt: str) -> tuple[str, list[dict]]:
+    def once(prompt: str) -> tuple[str, list[dict]]:
         resp = client.models.generate_content(
             model=model, contents=prompt,
             config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())], temperature=0.2))
@@ -85,7 +85,40 @@ def gemini_web_search(api_key: str, model: str) -> Callable[[str], tuple[str, li
                     sources.append({"title": web.title or "", "uri": web.uri})
         return resp.text or "", sources
 
-    return run
+    return lambda prompt: call_with_retry(lambda: once(prompt), "gemini", notify)
+
+
+def openai_web_search(api_key: str, model: str, notify=None) -> Callable[[str], tuple[str, list[dict]]]:
+    """웹 검색 도구가 붙은 ChatGPT 호출(Responses API). 답 속 인용 링크를 출처 목록으로 모은다."""
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key, max_retries=0, timeout=300)
+
+    def once(prompt: str) -> tuple[str, list[dict]]:
+        try:
+            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search"}])
+        except Exception as exc:  # 예전 모델은 web_search_preview 만 받는다
+            if "web_search" not in str(exc) and "tool" not in str(exc).lower():
+                raise
+            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search_preview"}])
+        sources, seen = [], set()
+        for item in resp.output or []:
+            for part in getattr(item, "content", None) or []:
+                for ann in getattr(part, "annotations", None) or []:
+                    url = getattr(ann, "url", None)
+                    if getattr(ann, "type", "") == "url_citation" and url and url not in seen:
+                        seen.add(url)
+                        sources.append({"title": getattr(ann, "title", "") or "", "uri": url})
+        return resp.output_text or "", sources
+
+    return lambda prompt: call_with_retry(lambda: once(prompt), "openai", notify)
+
+
+def web_search(api_key: str, model: str, notify=None):
+    """모델에 맞는 웹 검색기. ChatGPT 모델이면 OpenAI 웹 검색, 아니면 Gemini + Google 검색."""
+    if provider_of(model) == "openai":
+        return openai_web_search(api_key, model, notify)
+    return gemini_web_search(api_key, model, notify)
 
 
 def _installed_names(inventory: dict) -> list[str]:
