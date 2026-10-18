@@ -4,6 +4,7 @@
     queries → retrieve → write(Gemini 컨설턴트) → verify ─┬─ 통과 → END
                                    ▲                    └─ 실패(최대 2번 재시도) ─┘
 리포트 = 섹션 그래프를 섹션마다 돌린 뒤 summary를 쓰고, 목표 후보는 숫자로 정한다.
+단계마다 reports/<label>.partial.json 에 중간 저장 → 한도 등으로 멈추면 남은 단계부터 이어 한다.
 질문하기 = retrieve → answer → verify(근거 ID 확인) → 재시도.
 """
 import json
@@ -263,29 +264,89 @@ def _facts(since: str, until: str, sources, previous: dict | None, prev_me: dict
     return facts
 
 
+SECTIONS_ORDER = ("usage", "strengths", "weaknesses", "recommendations", "change", "person")
+
+
+def partial_path(label: str):
+    return REPORT_DIR / f"{label}.partial.json"
+
+
+def _partial_key(since: str, until: str, kind: str, sources) -> dict:
+    return {"since": since, "until": until, "kind": kind, "sources": sorted(sources or [])}
+
+
+def load_partial(label: str, since: str, until: str, kind: str, sources) -> dict:
+    """같은 기간·서비스로 만들다 멈춘 결과가 있으면 돌려준다(없거나 조건이 다르면 빈 dict)."""
+    p = partial_path(label)
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if data.get("key") == _partial_key(since, until, kind, sources) else {}
+
+
+def partial_info(label: str, since: str, until: str, kind: str, sources) -> list[str]:
+    """화면 안내용: 이미 끝난 단계 이름."""
+    done = load_partial(label, since, until, kind, sources).get("done", {})
+    return [k for k in (*SECTIONS_ORDER, "tools", "monthly", "research") if k in done]
+
+
+def saved_period(label: str) -> dict:
+    """중간 저장본의 기간·서비스 (초기 총정리를 다음 날 이어 할 때 끝 날짜를 그대로 쓰려고)."""
+    try:
+        return json.loads(partial_path(label).read_text(encoding="utf-8")).get("key", {})
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def clear_partial(label: str) -> None:
+    partial_path(label).unlink(missing_ok=True)
+
+
 def generate_report(llm, since: str, until: str, label: str, kind: str, sources: list[str] | None = None,
                     previous: dict | None = None, prev_me: dict | None = None,
                     progress: Callable[[str], None] = lambda _m: None, model_name: str = "",
-                    searcher=None, inventory: dict | None = None) -> dict:
+                    searcher=None, inventory: dict | None = None, resume: bool = True) -> dict:
+    """단계가 끝날 때마다 reports/<label>.partial.json 에 저장한다. 중간에 멈추면(한도 등)
+    다시 불렀을 때 끝난 단계는 건너뛰고 남은 단계부터 이어 간다."""
     graph = build_section_graph(llm)
     deep = kind == "초기 총정리"
     facts = _facts(since, until, sources, previous, prev_me)
+    key = _partial_key(since, until, kind, sources)
+    saved = load_partial(label, since, until, kind, sources) if resume else {}
+    done: dict = saved.get("done", {})
+    warnings: list[str] = list(saved.get("warnings", []))
+    if done:
+        progress(f":blue[지난번에 끝난 {len(done)}단계는 저장본을 쓰고 이어서 만듭니다]")
+
+    def checkpoint(step: str, value) -> None:
+        done[step] = value
+        REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        partial_path(label).write_text(json.dumps({"key": key, "done": done, "warnings": warnings}, ensure_ascii=False),
+                                       encoding="utf-8")
+
     out: dict = {}
     used_docs: set[str] = set()
-    warnings: list[str] = []
-    for section in ("usage", "strengths", "weaknesses", "recommendations", "change", "person"):
-        progress(f"{section}: 검색 → 작성 → 검증")
-        result = graph.invoke({"section": section, "since": since, "until": until, "sources": sources, "facts": facts,
-                               "deep": deep})
-        draft = result.get("draft", {})
-        if result.get("errors"):
-            warnings.append(f"{section}: {result['errors'][0]}")
-        progress(f"{section}: 완료 (시도 {result.get('attempts')}회)")
+    for section in SECTIONS_ORDER:
+        if section in done:
+            draft = done[section]
+            progress(f"{section}: 저장본 사용")
+        else:
+            progress(f"{section}: 검색 → 작성 → 검증")
+            result = graph.invoke({"section": section, "since": since, "until": until, "sources": sources, "facts": facts,
+                                   "deep": deep})
+            draft = result.get("draft", {})
+            if result.get("errors"):
+                warnings.append(f"{section}: {result['errors'][0]}")
+            progress(f"{section}: 완료 (시도 {result.get('attempts')}회)")
+            checkpoint(section, draft)
         out[section] = draft.get("items", draft) if section in ("strengths", "weaknesses", "recommendations", "change") else draft
         used_docs |= {f"{a}-{b}" for a, b in _ID.findall(json.dumps(draft, ensure_ascii=False))}
 
-    tools = None
-    if searcher is not None:
+    tools = done.get("tools")
+    if searcher is not None and tools is None:
         from core import recommend
 
         progress("연계 추천: 웹 검색 → 추천 작성 → 출처 검증")
@@ -293,16 +354,24 @@ def generate_report(llm, since: str, until: str, label: str, kind: str, sources:
         progress(f"연계 추천: 완료 (추천 {len(tools['items'])}개, 시도 {tools['attempts']}회)")
         if tools["warnings"]:
             warnings.append(f"연계 추천: {tools['warnings'][0]}")
+        checkpoint("tools", tools)
 
     baseline_extra = {}
     if deep:
         from core import baseline
 
-        progress("월별 흐름: 달마다 숫자 계산 → 한 줄 요약 → 검증")
-        baseline_extra["monthly"] = baseline.monthly_flow(llm, since, until, sources)
-        if searcher is not None:
+        if "monthly" in done:
+            baseline_extra["monthly"] = done["monthly"]
+        else:
+            progress("월별 흐름: 달마다 숫자 계산 → 한 줄 요약 → 검증")
+            baseline_extra["monthly"] = baseline.monthly_flow(llm, since, until, sources)
+            checkpoint("monthly", baseline_extra["monthly"])
+        if "research" in done:
+            baseline_extra["research"] = done["research"]
+        elif searcher is not None:
             progress("AI를 잘 쓰는 사람들의 특징: 웹 검색 → 정리 → 출처 검증")
             baseline_extra["research"] = baseline.best_practices(llm, searcher)
+            checkpoint("research", baseline_extra["research"])
 
     progress("summary: 요약 작성")
     summary_prompt = ("아래 섹션 결과를 바탕으로 요약을 써라.\n"
@@ -342,6 +411,7 @@ def save_report(data: dict) -> list[str]:
     errs = validate(data)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     (REPORT_DIR / f"{data['label']}.analysis.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    clear_partial(data["label"])
     return errs
 
 

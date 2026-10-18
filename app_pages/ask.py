@@ -12,10 +12,9 @@ if not over:
     st.info("먼저 '만들기' 화면에서 사용기록을 모아 주세요.", icon=":material/arrow_back:")
     st.stop()
 
-with st.container(horizontal=True, vertical_alignment="bottom"):
-    srcs = st.pills("검색할 서비스", [r["source"] for r in over], selection_mode="multi",
-                    default=[r["source"] for r in over], format_func=lambda s: store.SOURCES[s][0])
-    key = key_input()
+srcs = st.pills("검색할 서비스", [r["source"] for r in over], selection_mode="multi",
+                default=[r["source"] for r in over], format_func=lambda s: store.SOURCES[s][0])
+key = key_input()
 
 if not st.session_state.get("chat"):
     examples = ["내가 가장 자주 막히는 상황은?", "ChatGPT·Gemini에서 조사한 걸 Claude로 어떻게 넘겼어?",

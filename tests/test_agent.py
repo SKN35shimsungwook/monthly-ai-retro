@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from core import agent, importers, search, stats, store  # noqa: E402
-from core.llm import FakeLLM  # noqa: E402
+from core.llm import FakeLLM, QuotaError  # noqa: E402
 
 CHATGPT = [{"id": "g1", "title": "파이썬 질문", "create_time": 1791000000, "mapping": {
     "a": {"message": {"author": {"role": "user"}, "create_time": 1791000000,
@@ -30,6 +30,7 @@ GEMINI = [{"header": "Gemini Apps", "title": "Prompted EQ 테스트 자료 조�
 @pytest.fixture()
 def db(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "DB_PATH", tmp_path / "db" / "history.db")
+    monkeypatch.setattr(agent, "REPORT_DIR", tmp_path / "reports")  # 중간 저장본이 진짜 reports/ 에 생기지 않게
     for name, data in (("conversations.json", CHATGPT), ("conversations.json", CLAUDE_WEB), ("MyActivity.json", GEMINI)):
         _label, convs = importers.detect_and_parse(name, json.dumps(data, ensure_ascii=False).encode(), [])
         store.save_conversations(convs)
@@ -119,6 +120,59 @@ def test_generate_report_end_to_end(db):
     assert data["goal_candidates"] and data["totals"]["user_messages"] == 3
     from core.analysis import validate
     assert validate(data) == []
+
+
+def test_generate_report_resumes_after_quota_stop(db):
+    """섹션 몇 개가 끝난 뒤 한도로 멈추면, 다시 부를 때 끝난 섹션은 LLM을 부르지 않고 저장본을 쓴다."""
+    p = search.search("groupby")[0].doc
+    usage = json.dumps({"overview": f"질문 [{p}]", "made": [{"category": "학습", "examples": "", "note": ""}],
+                        "how": ["질문"], "habits": [f"설명 요청 [{p}]"]}, ensure_ascii=False)
+
+    class StopAfter(FakeLLM):
+        def invoke(self, messages):
+            if not self.responses:
+                raise QuotaError("하루 한도")
+            return super().invoke(messages)
+
+    with pytest.raises(QuotaError):
+        agent.generate_report(StopAfter([usage, _valid_items(p)]), "2026-09-01", "2026-12-31", "r", "월간")
+    assert agent.partial_info("r", "2026-09-01", "2026-12-31", "월간", None) == ["usage", "strengths"]
+    rest = [_valid_items(p), json.dumps({"items": [{"priority": 1, "title": "t", "now": f"n [{p}]", "better": "b"}]}),
+            json.dumps({"items": [{"item": "i", "before": "-", "after": "-", "verdict": "그대로"}]}),
+            json.dumps({k: [f"관찰 [{p}]"] for k in ("technical", "working", "learning", "social", "motivation")},
+                       ensure_ascii=False),
+            json.dumps({"headline": "이어 만듦", "type": "", "strengths_top": [], "weaknesses_top": [], "first_action": ""},
+                       ensure_ascii=False)]
+    llm = FakeLLM(rest)
+    data = agent.generate_report(llm, "2026-09-01", "2026-12-31", "r", "월간")
+    assert len(llm.calls) == 5 and data["headline"] == "이어 만듦"  # usage·strengths 는 다시 안 부름
+    assert data["usage"]["overview"].startswith("질문")
+    agent.save_report(data)
+    assert not agent.partial_path("r").exists()  # 저장하면 중간 저장본은 지움
+
+
+def test_retry_waits_on_rate_limit_and_stops_on_daily(monkeypatch):
+    from core import llm as llm_mod
+
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise RuntimeError("429 RESOURCE_EXHAUSTED Please retry in 12s")
+        return "ok"
+
+    said = []
+    assert llm_mod.call_with_retry(flaky, "gemini", said.append) == "ok" and len(said) == 2 and "14초" in said[0]
+
+    def daily():
+        raise RuntimeError("429 RESOURCE_EXHAUSTED GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+
+    with pytest.raises(QuotaError):
+        llm_mod.call_with_retry(daily, "gemini")
+    with pytest.raises(ValueError):  # 한도가 아닌 오류는 그대로 올려 보낸다
+        llm_mod.call_with_retry(lambda: (_ for _ in ()).throw(ValueError("x")), "openai")
 
 
 # ---------------- 자기 보고서 · 연계 추천 ----------------

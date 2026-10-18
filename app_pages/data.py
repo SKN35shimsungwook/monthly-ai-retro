@@ -7,9 +7,9 @@ import streamlit as st
 from core import agent, importers, inventory, profile, search, store
 from core.analysis import list_reports, load_me
 from core.claude_logs import DEFAULT_ROOT
-from core.llm import DEFAULT_MODEL, get_llm
+from core.llm import GEMINI_MODELS, OPENAI_MODELS, QuotaError, get_llm, provider_of
 from core.prompts import MODES, PROMPTS, emptiness, prompt_for, split_report
-from core.recommend import gemini_web_search
+from core.recommend import web_search
 from core.ui import config, key_input, load_reports
 
 cfg = config()
@@ -225,7 +225,7 @@ elif step == STEPS[2]:
 # ================= 3. 리포트 만들기 =================
 else:
     st.subheader("AI 컨설턴트에게 종합 리포트 맡기기")
-    st.caption("섹션마다 '검색 → 컨설턴트 작성 → 근거 검증 → 실패하면 다시 쓰기'. Gemini에는 검색으로 고른 일부 기록(가린 것)·통계·각 AI의 보고서만 보냅니다.")
+    st.caption("섹션마다 '검색 → 컨설턴트 작성 → 근거 검증 → 실패하면 다시 쓰기'. AI에는 검색으로 고른 일부 기록(가린 것)·통계·각 AI의 보고서만 보냅니다.")
     if not over:
         st.info("먼저 1·2단계에서 기록을 모아 주세요.", icon=":material/arrow_back:")
         st.stop()
@@ -255,6 +255,9 @@ else:
         else:
             since, until = date.fromisoformat(min(firsts)), today
             label, kind = "0-initial-agent", "초기 총정리"
+            saved = agent.saved_period(label)
+            if saved.get("since") == since.isoformat():  # 어제 멈춘 걸 오늘 이어 할 때도 같은 기간으로
+                until = date.fromisoformat(saved["until"])
 
         def src_label(s: str) -> str:
             r = over.get(s, {})
@@ -267,13 +270,25 @@ else:
         missing = [store.SOURCES[s][0] for s in (srcs or []) if s not in over]
         if missing:
             st.caption(f":orange[{', '.join(missing)}] 은(는) 아직 기록이 없어 빠집니다. 1단계에서 보고서를 넣어 주세요.")
-        with_tools = st.toggle("연계 추천 포함 (Google 검색으로 새 기술·플러그인·스킬 찾기)", value=True)
-        with st.container(horizontal=True, vertical_alignment="bottom"):
-            key = key_input()
-            model = st.selectbox("모델", [DEFAULT_MODEL, "gemini-flash-lite-latest", "gemini-pro-latest"])
-        st.caption(f"저장 이름: reports/{label}.analysis.json · 기간 {since} ~ {until}")
+        with_tools = st.toggle("연계 추천 포함 (웹 검색으로 새 기술·플러그인·스킬 찾기)", value=True)
+        models = OPENAI_MODELS + GEMINI_MODELS
+        # 초기 총정리는 보내는 양이 커서 ChatGPT API, 월간은 무료 Gemini 가 기본
+        model = st.selectbox("모델", models, index=0 if kind == "초기 총정리" else len(OPENAI_MODELS), width=320,
+                             format_func=lambda m: f"{m} · {'ChatGPT API (유료)' if provider_of(m) == 'openai' else 'Gemini'}")
+        provider = provider_of(model)
+        key = key_input(provider)
+        if kind == "초기 총정리" and provider == "gemini":
+            st.caption(":orange[초기 총정리는 Gemini 무료 한도에 걸리기 쉬워요. 한도에 걸리면 기다렸다 자동으로 다시 하지만 10분 넘게 걸릴 수 있어요.]")
         use = [s for s in (srcs or []) if s in over]
-        go = st.button("리포트 만들기", type="primary", icon=":material/auto_awesome:", disabled=not (key and use))
+        done = agent.partial_info(label, since.isoformat(), until.isoformat(), kind, use)
+        fresh = False
+        if done:
+            st.info(f"지난번에 멈춘 리포트가 있어요. 끝난 단계 {len(done)}개({', '.join(done)})는 저장본을 쓰고 남은 단계부터 이어서 만듭니다.",
+                    icon=":material/resume:")
+            fresh = st.checkbox("저장본 버리고 처음부터 다시 만들기")
+        st.caption(f"저장 이름: reports/{label}.analysis.json · 기간 {since} ~ {until} · 단계마다 중간 저장")
+        go = st.button("이어서 만들기" if done and not fresh else "리포트 만들기", type="primary",
+                       icon=":material/auto_awesome:", disabled=not (key and use))
 
     if go:
         previous = next((r for r in reversed(reports) if r["period"]["until"] < since.isoformat()), None)
@@ -289,21 +304,29 @@ else:
                         disliked.append(items[int(idx)].get("title") or items[int(idx)].get("name", ""))
             prev_me = {"disliked": disliked, "goals": me.get("goals", [])}
         with st.status("AI 컨설턴트가 분석 중…", expanded=True) as status:
+            def say(msg: str) -> None:
+                st.write(msg)
+
             try:
                 data = agent.generate_report(
-                    get_llm(key, model), since.isoformat(), until.isoformat(), label, kind, sources=use,
-                    previous=previous, prev_me=prev_me, progress=lambda msg: st.write(msg), model_name=model,
-                    searcher=gemini_web_search(key, model) if with_tools else None,
-                    inventory=inventory.collect() if with_tools else None)
+                    get_llm(key, model, notify=say), since.isoformat(), until.isoformat(), label, kind, sources=use,
+                    previous=previous, prev_me=prev_me, progress=say, model_name=model,
+                    searcher=web_search(key, model, notify=say) if with_tools else None,
+                    inventory=inventory.collect() if with_tools else None, resume=not fresh)
                 errs = agent.save_report(data)
                 load_reports.clear()
                 status.update(label="완료", state="complete")
                 if errs:
                     st.warning("형식 경고: " + " / ".join(errs[:5]), icon=":material/warning:")
                 st.session_state.report_label = label
+            except QuotaError as exc:
+                status.update(label="한도에 걸려 멈춤 (끝난 단계는 저장됨)", state="error")
+                st.error(str(exc), icon=":material/hourglass_top:")
+                st.stop()
             except Exception as exc:
-                status.update(label="실패", state="error")
-                st.error(f"리포트를 만들지 못했습니다: {exc}", icon=":material/error:")
+                status.update(label="실패 (끝난 단계는 저장됨)", state="error")
+                st.error(f"리포트를 만들지 못했습니다: {exc}\n\n다시 누르면 끝난 단계는 건너뛰고 이어서 만듭니다.",
+                         icon=":material/error:")
                 st.stop()
         if st.button("리포트 보러 가기", type="primary", icon=":material/article:"):
             st.switch_page("app_pages/report.py")

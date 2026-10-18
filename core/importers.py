@@ -117,10 +117,19 @@ def chatgpt(data: list, names: list[str]) -> list[dict]:
         msgs = []
         for m in nodes:
             role = (m.get("author") or {}).get("role")
-            if role not in ("user", "assistant"):
-                continue
             parts = (m.get("content") or {}).get("parts") or []
             text = "\n".join(p for p in parts if isinstance(p, str))
+            # 이미지 첨부·생성은 글이 없어도 기록으로 남긴다 (ChatGPT를 이미지 생성에 쓰는지 보기 위해)
+            images = sum(1 for p in parts if isinstance(p, dict) and "image" in str(p.get("content_type", "")))
+            if role == "tool":
+                if not images:
+                    continue
+                role, text = "assistant", ""
+            if role not in ("user", "assistant"):
+                continue
+            if images:
+                tag = f"(이미지 {images}개 {'첨부' if role == 'user' else '생성'})"
+                text = f"{tag} {text}".strip()
             if not text.strip():
                 continue
             limit = MAX_ASSISTANT if role == "assistant" else None
