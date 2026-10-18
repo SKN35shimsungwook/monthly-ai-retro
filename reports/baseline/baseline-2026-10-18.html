@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>AI 활용 기준선 리포트</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink:#1f2328; --sub:#59636e; --line:#d8dee4; --accent:#5b3cc4; --soft:#f3f0ff; --good:#1a7f37; --bad:#cf222e; --warn:#9a6700; }
+  * { box-sizing: border-box; }
+  body { font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.6; margin: 0; background: #fff; }
+  h1 { font-size: 24pt; margin: 0 0 6px; letter-spacing: -0.5px; }
+  h2 { font-size: 14pt; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin: 22px 0 10px; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14px 0 6px; break-after: avoid; }
+  p { margin: 4px 0 8px; }
+  .sub { color: var(--sub); }
+  .small { font-size: 8.5pt; }
+  .cover { border-left: 6px solid var(--accent); padding: 8px 0 8px 16px; margin-bottom: 18px; }
+  .headline { background: var(--soft); border-radius: 8px; padding: 14px 16px; font-size: 12pt; font-weight: 700; margin: 12px 0; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+  .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .kpi b { display: block; font-size: 15pt; }
+  .kpi span { color: var(--sub); font-size: 8.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9pt; break-inside: auto; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; font-weight: 700; }
+  tr { break-inside: avoid; }
+  table.keep { break-inside: avoid; }
+  td:has(.bar) { white-space: nowrap; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; margin: 7px 0; break-inside: avoid; }
+  .card h4 { margin: 0 0 3px; font-size: 10.5pt; }
+  .tag { display: inline-block; font-size: 8pt; padding: 1px 7px; border-radius: 10px; background: var(--soft); color: var(--accent); margin-left: 6px; font-weight: 400; }
+  .tag.src { background: #eef6ee; color: var(--good); }
+  .ev { color: var(--sub); font-size: 9pt; }
+  .better { background: #f6f8fa; border-left: 3px solid var(--accent); padding: 5px 9px; font-size: 9pt; margin-top: 4px; }
+  .up { color: var(--good); font-weight: 700; } .down { color: var(--bad); font-weight: 700; } .same { color: var(--warn); font-weight: 700; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .note { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; font-size: 9pt; color: var(--sub); }
+  .pb { break-before: page; }
+  ul { margin: 4px 0 8px; padding-left: 18px; } li { margin: 2px 0; }
+  .bar { height: 8px; margin-right: 6px; background: var(--accent); border-radius: 4px; display: inline-block; vertical-align: middle; }
+  footer { margin-top: 18px; font-size: 8pt; color: var(--sub); border-top: 1px solid var(--line); padding-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="sub small">0회차 · 기준선 (이후 월간 리포트의 비교 기준)</div>
+  <h1>AI 활용 기준선 리포트</h1>
+  <div class="sub">기간 2025-09-02 ~ 2026-10-18 (처음 기록부터 오늘까지) · 작성 2026-10-18 · Claude Code가 두 리포트를 검토해 통합</div>
+</div>
+
+<div class="headline">
+  아이디어를 배포까지 끝내는 <u>감독형 사용자</u>다. 조사는 Gemini·ChatGPT, 구현은 Claude Code, 문서는 Claude AI로 나누는 분업 구조가 생겼다.
+  판정 감각과 실행력은 강하다. 반면 '끝난 기준'을 거의 주지 않고(6.0%), '됐다'는 말을 증거 없이 믿는다(7.5%). 이 두 가지가 가장 큰 개선 여지다.
+</div>
+
+<div class="grid">
+  <div class="kpi"><b>2,701</b><span>내 메시지 (AI 4곳)</span></div>
+  <div class="kpi"><b>263</b><span>대화(세션)</span></div>
+  <div class="kpi"><b>118</b><span>사용한 날</span></div>
+  <div class="kpi"><b>1,296</b><span>GitHub 커밋</span></div>
+  <div class="kpi"><b>약 35</b><span>만든 프로그램</span></div>
+</div>
+
+<h2>1. 이 문서는 어떻게 만들었나</h2>
+<table>
+  <tr><th style="width:18%">구분</th><th>0회차 (Claude Code 직접 작성)</th><th>에이전트 리포트 (gpt-4o-mini)</th></tr>
+  <tr><td>범위</td><td>Claude Code 기록만 (2026-07-27 ~ 10-16)</td><td>Claude Code · Claude AI · ChatGPT · Gemini · GitHub 전체 (2025-09 ~ 2026-10)</td></tr>
+  <tr><td>읽은 방식</td><td>내 메시지를 처음부터 끝까지 전부 읽음</td><td>섹션마다 검색으로 고른 기록 최대 70개 + 통계 + 각 AI의 자기 보고서</td></tr>
+  <tr><td>강점</td><td>근거가 구체적이고 깊다</td><td>서비스 사이의 분업, 월별 흐름, Claude Code 이전 시기를 보여 준다</td></tr>
+  <tr><td>약점</td><td>다른 AI 사용을 보지 못했다</td><td>문장이 일반적이다. 연구 수치와 연계 추천은 웹 출처가 0개여서 믿을 수 없다</td></tr>
+</table>
+<p class="small sub">통합 원칙: 숫자는 에이전트의 전체 통계를 기준으로 삼고, 해석과 근거는 0회차의 깊이를 살렸다. 에이전트 결과 중 출처 없는 연구 수치, 출처 없는 추천, 민감한 개인 질문은 버렸다(12장).</p>
+
+<h2>2. 서비스별 분업 구조</h2>
+<table>
+  <tr><th>서비스</th><th class="n">내 메시지</th><th>주로 하는 일</th><th style="width:22%">비중</th></tr>
+  <tr><td>Claude Code</td><td class="n">1,212</td><td>구현 · 배포 · 커밋 (2026-07-27부터)</td><td><span class="bar" style="width:96px"></span> 45%</td></tr>
+  <tr><td>Gemini</td><td class="n">664</td><td>딥리서치 · 이미지·영상 · 빠른 질문 (가장 오래 씀, 2025-09부터)</td><td><span class="bar" style="width:61px"></span> 25%</td></tr>
+  <tr><td>Claude AI (웹·앱)</td><td class="n">634</td><td>아티팩트 시제품 · 문서·보고서 (2026-05부터)</td><td><span class="bar" style="width:58px"></span> 23%</td></tr>
+  <tr><td>ChatGPT</td><td class="n">191</td><td>아이디어·기획 상담 · 이미지 생성 · 리서치</td><td><span class="bar" style="width:17px"></span> 7%</td></tr>
+  <tr><td>GitHub</td><td class="n">커밋 1,296</td><td>결과물 저장·배포 · 새 저장소 45개 이상</td><td></td></tr>
+</table>
+<p><b>해석.</b> 흐름은 "Gemini·ChatGPT로 조사하고 아이디어를 낸다 → Claude Code로 만든다 → Claude AI로 문서를 쓴다"이다. 도구를 목적에 맞게 나누는 것은 잘하고 있다. 다만 조사 결과를 구현 쪽으로 넘길 때 <b>인계 기록이 남지 않는다</b>. ChatGPT도 자기 보고서에서 같은 점을 지적했다.</p>
+
+<h2>3. 월별 흐름 (타임라인의 출발점)</h2>
+<table>
+  <tr><th>달</th><th class="n">메시지</th><th class="n">커밋</th><th class="n">끝난 기준</th><th class="n">계획 먼저</th><th class="n">증거 요구</th><th class="n">이유 묻기</th><th>그달의 흐름</th></tr>
+  <tr><td>2025-09 ~ 2026-03</td><td class="n">57</td><td class="n">0</td><td class="n">0%</td><td class="n">0%</td><td class="n">-</td><td class="n">-</td><td>Gemini로 생활 질문, 코드 질문, 사업 아이템 탐색. 가끔 쓰는 검색 대용 단계</td></tr>
+  <tr><td>2026-05</td><td class="n">127</td><td class="n">0</td><td class="n">2.4%</td><td class="n">4.0%</td><td class="n">17.7%</td><td class="n">12.1%</td><td>사용 급증. AI 트레이딩 같은 큰 아이디어를 Claude AI·ChatGPT로 기획</td></tr>
+  <tr><td>2026-06</td><td class="n">121</td><td class="n">0</td><td class="n">8.6%</td><td class="n">12.9%</td><td class="n">19.8%</td><td class="n">12.9%</td><td>리서치 기반 기획. <b>증거·계획 지표가 가장 높았던 달</b></td></tr>
+  <tr><td>2026-07</td><td class="n">765</td><td class="n">77</td><td class="n">7.1%</td><td class="n">3.3%</td><td class="n">5.4%</td><td class="n">16.7%</td><td>부트캠프 시작, Claude Code 도입(7/27). 양이 폭발적으로 늘어남</td></tr>
+  <tr><td>2026-08</td><td class="n">497</td><td class="n">368</td><td class="n">7.6%</td><td class="n">7.9%</td><td class="n">9.4%</td><td class="n">13.9%</td><td>퀴즈·게임 제작, 금융 AI 챌린지 브랜드 기획</td></tr>
+  <tr><td>2026-09</td><td class="n">430</td><td class="n">605</td><td class="n">3.3%</td><td class="n">6.6%</td><td class="n">5.7%</td><td class="n">10.0%</td><td>하루 여러 개 빠르게 제작·배포. 커밋 최다</td></tr>
+  <tr><td>2026-10</td><td class="n">704</td><td class="n">246</td><td class="n">6.1%</td><td class="n">8.0%</td><td class="n">4.9%</td><td class="n">10.3%</td><td>IQ·EQ·팀 챗봇처럼 설계가 깊은 작업, AI 사용 회고 시작</td></tr>
+</table>
+<p class="small sub">2026-04는 기록이 없다. 2025-09 ~ 2026-03은 메시지가 적어 비율 지표를 해석하지 않는다.</p>
+<p><b>눈에 띄는 점.</b> 리서치 위주였던 5~6월에는 증거 요구가 18~20%였다. 그런데 Claude Code로 직접 만들기 시작한 7월부터는 5~9%로 떨어졌다. "출처를 대라"는 습관은 이미 있다. <b>코딩할 때도 "테스트 결과·화면을 보여 달라"로 옮기기만 하면 된다.</b></p>
+
+<h2>4. 사용 유형</h2>
+<div class="card">
+  <h4>감독형(디렉터형) + 분업형</h4>
+  <p>아이디어와 자료(PDF, 딥리서치 보고서, 캡처)를 주고 Claude가 끝까지 만들게 한다. 그다음 직접 써 보며 다듬는다. 조사·구현·문서를 서로 다른 AI에 맡긴다.</p>
+  <ul>
+    <li>시작: 한 줄 아이디어 + 자료 → "질문하면서 계획 세워"</li>
+    <li>제작 중: "링크 줘", "서버 줘"로 직접 써 보기 → 피드백</li>
+    <li>마무리: 점검 요청 → "커밋하고 푸시" → Streamlit 배포 → README</li>
+    <li>고정 스택: Python + Streamlit. 평일 낮(수업 시간) 사용이 대부분이다</li>
+  </ul>
+</div>
+<table>
+  <tr><th>만든 것</th><th>예시</th></tr>
+  <tr><td>시험·학습 도구</td><td>정보처리산업기사·ADsP·전기산업기사 퀴즈, ML·DL·LangChain 용어 퀴즈</td></tr>
+  <tr><td>게임·재미</td><td>야구 타이밍, 스파이더맨 웹스윙, 카지노(가상 칩) 6종, 온라인 흡연장, 데이트 신청서</td></tr>
+  <tr><td>측정 도구</td><td>IQ 테스트, EQ 테스트(능력 + 자기보고)</td></tr>
+  <tr><td>자동화·생활</td><td>주간회고 블로그 자동화, API 결제 트래커, AI 동향 DB, 이 회고 에이전트</td></tr>
+  <tr><td>수업·팀</td><td>상권 ML, LangChain 마이그레이션 챗봇, RAG·ADK·MCP·RunPod 실습</td></tr>
+  <tr><td>조사·기획 (Gemini·ChatGPT)</td><td>AI 엔지니어링 장문 리포트, IQ 심층 리서치, 금융 AI 챌린지 브랜드 기획</td></tr>
+</table>
+
+<h2>5. 강점</h2>
+<div class="card"><h4>아이디어를 배포까지 끝내는 실행력 <span class="tag">위임</span></h4>
+<p class="ev">근거: 하루에 카지노 게임 6개를 만들어 각각 커밋·푸시한 날이 있다. 커밋 1,296개, 새 저장소 45개 이상</p>
+<p>대부분의 입문자는 만들다 멈춘다. 배포와 README까지 끝내는 습관이 이미 있다.</p></div>
+<div class="card"><h4>사용자 눈으로 결함을 잡는 판정 감각 <span class="tag">분별</span></h4>
+<p class="ev">근거: "3번 4번 답 같음", "원본이랑 같아?", IQ 문항 규칙 오류 지적, EQ "당연한 정답 문항" 지적</p>
+<p>직접 풀어 보고 설계 결함까지 찾는다. AI가 놓치는 부분을 사람이 잡는 역할을 제대로 한다.</p></div>
+<div class="card"><h4>실패를 규칙으로 바꾸는 능력 <span class="tag">설명</span></h4>
+<p class="ev">근거: 파일럿에서 나온 오류 11유형을 '마스터 규칙'으로 만들어 나머지 720문항에 적용. EQ '착한 답 금지' 규칙</p>
+<p>잘 쓰는 사람들의 핵심 행동이다. 같은 실수가 반복되지 않게 하는 장치를 스스로 만든다.</p></div>
+<div class="card"><h4>도구를 목적별로 나눠 쓰는 분업 <span class="tag">위임</span></h4>
+<p class="ev">근거: 조사는 Gemini 딥리서치, 기획은 ChatGPT, 구현은 Claude Code, 문서는 Claude AI로 나눈다(에이전트 리포트, 각 AI 보고서)</p>
+<p>AX 컨설턴트가 고객에게 제안해야 할 "업무별 도구 배치"를 이미 스스로 하고 있다.</p></div>
+<div class="card"><h4>AI가 먼저 질문하게 함 <span class="tag">설명</span></h4>
+<p class="ev">근거: 8월 초 "객관식으로 질문하면서 확인해" 이후 "질문하면서 계획 세워"가 습관이 됨. 계획 먼저 요청은 7월 3.3%에서 10월 8.0%로 늘었다</p>
+<p>Anthropic이 권하는 '인터뷰 → 설계서 → 실행' 방식과 같다.</p></div>
+<div class="card"><h4>비용·경계 감각 <span class="tag">책임</span></h4>
+<p class="ev">근거: 무료·저가 모델 선택, "호출 비용 아까워 내가 돌릴게". 카지노는 가상 칩만, 팀 저장소는 요청할 때만, 팀원 이름 가리기</p>
+<p>신뢰가 자산인 기술영업·AX 직무에 그대로 이어지는 습관이다.</p></div>
+
+<h2>6. 약점</h2>
+<div class="card"><h4>끝난 기준 없이 맡김 <span class="tag">설명</span></h4>
+<p class="ev">근거: 끝난 기준을 붙인 요청은 전체의 6.0%이고, 14개월 내내 한 번도 9%를 넘지 않았다. 검증은 "테스트 5회", "100번 실행"처럼 횟수로 요구한다</p>
+<p>횟수는 기준이 아니다. "선택지 4개가 모두 달라야 한다" 같은 통과 조건이 있어야 AI가 스스로 걸러 낼 수 있다. <b>가장 효과가 큰 단일 개선점이다.</b></p></div>
+<div class="card"><h4>'됐다'를 증거 없이 믿음 <span class="tag">분별</span></h4>
+<p class="ev">근거: 증거 요구 7.5%. 다시 고치라는 요청 113회, 불신 표현 35회, "다 확인했다며" 반복</p>
+<p>AI가 "확인했다"고 말하는 것과 실제로 확인한 것은 다르다. 증거를 받으면 검토가 빨라지고 재요청이 줄어든다.</p></div>
+<div class="card"><h4>이해 없이 통째로 위임 <span class="tag">위임</span></h4>
+<p class="ev">근거: 에러 원문만 붙여넣은 메시지 223회(대부분 Claude Code 밖). 이유를 묻는 메시지는 7월 16.7%에서 10월 10.3%로 줄었다</p>
+<p>Anthropic 실험에서 코드를 통째로 맡긴 그룹은 이해도 퀴즈 점수가 40%에 못 미쳤다(7장). 내가 읽지 못하는 코드는 내가 검증할 수도 없다.</p></div>
+<div class="card"><h4>한 대화를 너무 오래 씀 <span class="tag">위임</span></h4>
+<p class="ev">근거: 메시지 50개가 넘는 대화 11개, 3일 넘게 이어진 대화 26개. 사용량 한도 7회</p>
+<p>대화가 길어질수록 AI는 앞의 지시를 잊고 실수가 늘어난다. "내 요청을 무시했다"는 느낌의 원인 중 하나다.</p></div>
+<div class="card"><h4>조사 → 구현 인계와 출처 검증이 약함 <span class="tag">책임</span></h4>
+<p class="ev">근거: ChatGPT 자기 보고서가 "조사 요청과 실제 조사 완료를 구분하는 기준이 약하고, 다른 AI로 넘긴 기록이 없다"고 지적. 딥리서치 결과를 교차 검증하지 않은 채 구현에 씀</p>
+<p>분업은 잘하지만 이음매가 비어 있다. 조사 결과가 틀리면 그 위에 만든 것도 다시 해야 한다.</p></div>
+<div class="card"><h4>넓게 벌리고 깊게 마무리하지 못함 · 겉 지표 <span class="tag">책임</span></h4>
+<p class="ev">근거: 약 35개 중 깊이 있는 것은 퀴즈·IQ·EQ·팀 챗봇 정도. 10월 초에 잔디 색과 커밋 날짜를 맞추는 데 하루 대부분을 씀</p>
+<p>포트폴리오를 보는 사람은 개수보다 대표작 3개의 깊이와 기록의 신뢰를 본다.</p></div>
+
+<h2>7. AI를 잘 쓰는 사람들 — 연구가 말하는 것</h2>
+<table class="keep">
+  <tr><th style="width:30%">연구</th><th>핵심 결과</th><th style="width:26%">나에게 주는 의미</th></tr>
+  <tr><td>BCG·하버드 등, 컨설턴트 758명 현장 실험 (2023)</td><td>AI가 잘하는 범위 안의 과제에서는 12.2% 더 많은 과제를 25.1% 빨리 끝냈고 품질도 크게 올랐다. 범위 밖 과제에서는 정답률이 오히려 떨어졌다(이른바 '들쭉날쭉한 경계')</td><td>"재밌게", "실감나게"처럼 AI가 스스로 판정할 수 없는 일은 경계 밖이다</td></tr>
+  <tr><td>METR, 숙련 오픈소스 개발자 16명 무작위 실험 (2025)</td><td>AI를 쓴 쪽이 19% 더 오래 걸렸다. 그런데 본인들은 20% 빨라졌다고 믿었다</td><td>체감이 아니라 측정으로 판단해야 한다. 이 회고 에이전트를 만든 이유와 같다</td></tr>
+  <tr><td>Anthropic, AI 도움과 코딩 실력 형성 (2026)</td><td>AI를 쓴 그룹의 이해도 퀴즈는 50%, 직접 코딩한 그룹은 67%였다. 통째로 맡긴 그룹은 40% 미만이었고, 생성 후 "왜?"를 물은 그룹은 점수를 지켰다</td><td>만든 뒤 "왜" 3개를 묻는 습관이 실력을 지킨다</td></tr>
+  <tr><td>Anthropic AI Fluency 4D</td><td>위임(무엇을 맡길까) · 설명(어떻게 말할까) · 분별(결과를 어떻게 판단할까) · 책임(결과를 누가 책임질까)</td><td>강점·약점 카드의 분류 기준</td></tr>
+</table>
+<p><b>잘 쓰는 사람들의 공통 행동:</b> ① 끝난 기준을 먼저 준다 ② 계획을 세운 뒤 실행한다 ③ 말이 아니라 증거로 검증한다 ④ 주제마다 새 대화를 연다 ⑤ 결과를 이해하면서 배운다. 지금 나는 ②는 하고 있고, ①·③·⑤가 약하다.</p>
+<p class="small sub">출처: Dell'Acqua 외, "Navigating the Jagged Technological Frontier" (HBS Working Paper, 2023) · METR, "Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity" (2025-07) · Anthropic, "How AI assistance impacts the formation of coding skills" (2026-01) · Anthropic AI Fluency 과정. 수치는 2026-10-18에 웹에서 다시 확인했다.</p>
+
+<h2>8. 보완점 — 바로 복사해서 쓰는 문장</h2>
+<div class="card"><h4>① 통과 조건 먼저</h4><p class="ev">지금: "오류 없을 때까지 테스트 5회"</p>
+<div class="better">"끝난 기준: ① 선택지 4개가 모두 다르다 ② 원본에 그림이 있으면 문제에도 있다 ③ 정답을 고르면 정답 처리된다. 전체를 이 기준으로 검사하는 스크립트를 만들고 결과 표를 보여줘."</div></div>
+<div class="card"><h4>② 말 대신 증거</h4><p class="ev">지금: "오류 없는 거 맞지?"</p>
+<div class="better">"통과한 테스트 출력과 화면 캡처 3장을 같이 보여줘. 확인 못 한 건 확인 못 했다고 따로 적어줘."</div></div>
+<div class="card"><h4>③ 조사 → 구현 인계 메모</h4><p class="ev">지금: Gemini 딥리서치 결과를 통째로 붙여넣고 "이걸로 만들어줘"</p>
+<div class="better">(Gemini에게) "이 조사를 구현 담당 AI에게 넘길 인계 메모로 정리해줘: 확인된 사실(출처 URL) / 추정 / 결정할 것 / 만들 것 / 끝난 기준."</div></div>
+<div class="card"><h4>④ 한 대화 = 한 주제</h4><p class="ev">지금: 한 대화에서 앱 여러 개를 며칠씩 진행</p>
+<div class="better">"여기까지 인계 메모 써줘(한 일·남은 일·결정 사항)." → 새 대화에 붙여넣고 시작. 같은 수정이 2번 실패하면 새 대화에서 더 자세히 요청한다.</div></div>
+<div class="card"><h4>⑤ 만든 뒤 '왜' 3개</h4><p class="ev">지금: 결과물만 받고 다음 요청</p>
+<div class="better">"이 코드에서 가장 중요한 3줄과 그 이유를 설명해줘. 그다음 내가 이해했는지 퀴즈 3개 내줘."</div></div>
+<div class="card"><h4>⑥ 검사는 다른 눈에게</h4><p class="ev">지금: 만든 Claude가 스스로 점검</p>
+<div class="better">다 만든 뒤 새 대화에서 "이 앱의 버그를 찾는 검사관 역할을 해줘. 끝난 기준 목록과 비교해서 통과/실패 표로."</div></div>
+<div class="card"><h4>⑦ 잔디 대신 대표작 3개</h4><p class="ev">지금: 커밋 날짜·색 맞추기</p>
+<div class="better">대표작 3개(EQ 테스트, LangChain 챗봇, 이 회고 에이전트)의 README 맨 위에 데모 링크 · 한 줄 요약 · 검증 수치를 넣는다.</div></div>
+
+<h2>9. 연계 추천 (지금 쓰는 도구와 결합)</h2>
+<table>
+  <tr><th style="width:24%">무엇</th><th>지금 쓰는 것과 결합하면</th><th style="width:20%">해결하는 약점</th></tr>
+  <tr><td>Claude Code 훅(hook)</td><td>작업이 끝날 때 테스트를 자동으로 돌리게 하면 "됐다" 대신 결과가 남는다</td><td>증거 없이 믿음</td></tr>
+  <tr><td>프로젝트별 CLAUDE.md의 '끝난 기준' 칸</td><td>이미 쓰는 전역 규칙 파일에 "완료 보고에는 테스트 출력과 캡처 첨부"를 넣는다</td><td>끝난 기준 · 증거</td></tr>
+  <tr><td>NotebookLM</td><td>Gemini 딥리서치 결과와 원문을 넣고, 출처가 달린 답만 받아 인계 메모를 만든다</td><td>출처 검증 · 인계</td></tr>
+  <tr><td>이 회고 앱의 '묻기'</td><td>새 프로젝트를 시작하기 전에 "이런 작업에서 내가 자주 막힌 곳은?"을 물어본다</td><td>같은 실수 반복</td></tr>
+</table>
+<p class="small sub">에이전트가 추천한 6개(Claude Code 플러그인, ChatGPT 플러그인, Copilot, Streamlit, RunPod, LangChain)는 웹 출처가 0개였고, 이미 쓰는 도구가 섞여 있어서 뺐다. 위 표는 Claude가 기존 사용 기록을 보고 고른 것이다.</p>
+
+<h2>10. 나라는 사람 (진단이 아니라 관찰)</h2>
+<div class="two">
+<div class="card"><h4>기술</h4><ul>
+<li>코드를 직접 쓰는 힘은 초급이지만, 모르는 것을 숨기지 않고 묻는다</li>
+<li>측정·평가 감각이 뛰어나다 (문항 중복, 회차 분리, 솔직성 확인 문항)</li>
+<li>Python·Streamlit·Git·LangChain·ADK·MCP·RunPod를 짧은 기간에 모두 만져 봤다. 넓이는 넓고 깊이는 이제 쌓는 중이다</li></ul></div>
+<div class="card"><h4>일하는 방식</h4><ul>
+<li>완성본을 보면서 고치는 타입이다</li>
+<li>기준이 높다: "한 문제도 이런 오류가 없게"</li>
+<li>숫자로 말한다: 환수율, 과락 기준, 초 단위 시간</li>
+<li>도구를 목적별로 나누는 분업 설계를 한다</li></ul></div>
+<div class="card"><h4>배우는 방식</h4><ul>
+<li>자격증처럼 목표가 분명한 학습을 좋아하고, 공부 도구를 직접 만든다</li>
+<li>해 보면서 배우고, 스스로 비유를 만들어 확인한다</li>
+<li>부트캠프 이후 학습이 체계화됐다</li></ul></div>
+<div class="card"><h4>사회적 면</h4><ul>
+<li>친구를 위한 것을 만든다 (온라인 흡연장, 데이트 신청서)</li>
+<li>팀에서는 경계를 존중한다: 다른 팀원 파일은 건드리지 않고, 이름을 가리고, 합의안을 쓴다</li>
+<li>AI에게는 직설적이다. 답답하면 감정이 그대로 나온다</li></ul></div>
+</div>
+<div class="card"><h4>동기와 진로</h4><ul>
+<li>보이는 결과와 인정을 중시한다. 좋은 동력이지만 겉 지표로 흐르면 신뢰를 잃는다</li>
+<li>희망 직무인 기술영업·AX 컨설턴트의 흐름(측정 → 보여 주기 → 설득)과 잘 맞는다. 이 회고 에이전트 자체가 "고객의 AI 활용을 진단하는 도구"의 시제품이다</li>
+<li>채워야 할 것은 "왜 이렇게 만들었는지"를 설명하는 기술 설명력이다</li></ul></div>
+
+<h2>11. 기준 지표와 목표 (다음 리포트부터 이 표와 비교)</h2>
+<table>
+  <tr><th>지표</th><th class="n">Claude Code만<br><span class="small">(7/27~10/16)</span></th><th class="n">전체 기준선<br><span class="small">(AI 4곳)</span></th><th class="n">목표</th><th>방향</th></tr>
+  <tr><td><b>끝난 기준을 붙인 요청</b></td><td class="n">5.1%</td><td class="n"><b>6.0%</b></td><td class="n"><b>15% 이상</b></td><td>높을수록 좋음</td></tr>
+  <tr><td><b>증거를 요구한 요청</b></td><td class="n">6.9%</td><td class="n"><b>7.5%</b></td><td class="n"><b>15% 이상</b></td><td>높을수록 좋음</td></tr>
+  <tr><td><b>설명·이유를 물은 메시지</b></td><td class="n">10.6%</td><td class="n"><b>12.7%</b></td><td class="n"><b>19% 이상</b></td><td>높을수록 좋음</td></tr>
+  <tr><td><b>50개 넘는 긴 대화</b></td><td class="n">6개</td><td class="n"><b>11개</b></td><td class="n"><b>5개 이하</b></td><td>낮을수록 좋음</td></tr>
+  <tr><td>계획 먼저 요청</td><td class="n">8.7%</td><td class="n">6.4%</td><td class="n">-</td><td>높을수록 좋음</td></tr>
+  <tr><td>점검·검증 요청</td><td class="n">15.0%</td><td class="n">9.6%</td><td class="n">-</td><td>높을수록 좋음</td></tr>
+  <tr><td>다시 고치라는 요청</td><td class="n">69회</td><td class="n">113회</td><td class="n">-</td><td>낮을수록 좋음</td></tr>
+  <tr><td>불신·답답함 표현</td><td class="n">21회</td><td class="n">35회</td><td class="n">-</td><td>낮을수록 좋음</td></tr>
+  <tr><td>에러 원문만 붙여넣기</td><td class="n">28회</td><td class="n">223회</td><td class="n">-</td><td>낮을수록 좋음</td></tr>
+  <tr><td>3일 넘게 이어진 대화</td><td class="n">12개</td><td class="n">26개</td><td class="n">-</td><td>낮을수록 좋음</td></tr>
+  <tr><td>한 메시지에 요청 과다</td><td class="n">6.9%</td><td class="n">6.3%</td><td class="n">-</td><td>낮을수록 좋음</td></tr>
+  <tr><td>15자 이하 짧은 지시</td><td class="n">10.5%</td><td class="n">7.6%</td><td class="n">-</td><td>참고</td></tr>
+  <tr><td>작업 중단</td><td class="n">46회</td><td class="n">47회</td><td class="n">-</td><td>참고</td></tr>
+  <tr><td>사용량 한도</td><td class="n">7회</td><td class="n">7회</td><td class="n">-</td><td>참고</td></tr>
+</table>
+<p><b>다음 달 첫 행동 하나:</b> 요청할 때 '끝난 기준' 3줄을 붙이고, 완료 보고에는 테스트 결과나 캡처를 요구한다. 이것만으로 위의 굵은 지표 두 개가 함께 움직인다.</p>
+
+<h2>12. 이 기준선의 한계와 버린 것</h2>
+<ul>
+  <li>지표는 키워드 규칙으로 센 값이다. 절대값보다 <b>다음 달과 비교한 방향</b>을 보는 용도다.</li>
+  <li>2025-09 ~ 2026-03은 메시지가 57개뿐이라 비율을 해석하지 않았다. 에이전트의 "변화" 표(초반 0.0% → 최근 6.3%)는 이 작은 표본 때문에 생긴 착시라서 쓰지 않았다.</li>
+  <li>에이전트 리포트의 연구 수치(예: "20% 시간 절약")와 연계 추천은 웹 출처가 0개여서 버렸다. 7장은 다시 확인한 공개 자료로 새로 썼다.</li>
+  <li>월별 대표 질문 중 건강·생활 같은 개인적인 질문은 이 문서에 넣지 않았다.</li>
+  <li>'나라는 사람'은 성격 진단이 아니라 AI 앞에서 보인 행동의 관찰이다. 강사·팀원의 의견으로 교차 확인하길 권한다.</li>
+</ul>
+
+<footer>monthly-ai-retro · 0회차 기준선 (0-initial + 0-initial-agent 통합) · 2026-10-18 · 원본 기록은 이 PC에만 있다</footer>
+</body>
+</html>

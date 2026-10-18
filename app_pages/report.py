@@ -131,6 +131,8 @@ if data.get("research"):
     rs = data["research"]
     st.header("AI를 잘 쓰는 사람들의 특징", anchor="research", divider="blue")
     st.caption("웹에서 찾은 연구·공식 가이드입니다. 아래 강점·약점은 이 기준과 비교해 읽으면 됩니다.")
+    if not rs.get("studies") and not rs.get("traits"):
+        st.info("출처 없음: 웹 검색에서 확인된 출처가 없어 이 섹션을 비워 두었습니다.", icon=":material/link_off:")
     for it in rs.get("studies", []):
         with st.container(border=True):
             st.markdown(f"**{it.get('name', '')}**")
@@ -138,7 +140,8 @@ if data.get("research"):
             with st.container(horizontal=True):
                 for j, link in enumerate(it.get("links", [])[:2]):
                     st.link_button(link.get("title") or f"출처 {j + 1}", link["uri"], icon=":material/open_in_new:")
-    st.markdown("**잘 쓰는 사람들의 특징**")
+    if rs.get("traits"):
+        st.markdown("**잘 쓰는 사람들의 특징**")
     grid = st.columns(2)
     for i, t in enumerate(rs.get("traits", [])):
         with grid[i % 2].container(border=True, height="stretch"):

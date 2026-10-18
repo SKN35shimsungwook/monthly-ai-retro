@@ -98,7 +98,11 @@ def check_research(draft: dict, n_sources: int) -> list[str]:
 
 
 def best_practices(llm, searcher) -> dict:
-    research, sources = searcher(RESEARCH_PROMPT)
+    from core.recommend import NO_SOURCES, search_with_sources
+
+    research, sources = search_with_sources(searcher, RESEARCH_PROMPT)
+    if not sources:  # 출처 없이 쓰면 연구 이름·수치를 지어낸다 → 비워 둔다
+        return {"studies": [], "traits": [], "warnings": [NO_SOURCES]}
     src = "\n".join(f"S{i}: {s['title']} {s['uri']}" for i, s in enumerate(sources, 1)) or "(출처 없음)"
     base = WRITE_PROMPT.format(research=research[:7000], sources=src)
     errors: list[str] = []
@@ -112,6 +116,7 @@ def best_practices(llm, searcher) -> dict:
     def links(it):
         return [sources[int(x) - 1] for s in it.get("sources", []) for x in _S.findall(str(s)) if 1 <= int(x) <= len(sources)]
 
-    return {"studies": [{**s, "links": links(s)} for s in draft.get("studies", [])],
-            "traits": [{**t, "links": links(t)} for t in draft.get("traits", [])],
+    # 실제 출처가 안 붙은 항목은 버린다
+    return {"studies": [{**s, "links": links(s)} for s in draft.get("studies", []) if links(s)],
+            "traits": [{**t, "links": links(t)} for t in draft.get("traits", []) if links(t)],
             "warnings": errors}
