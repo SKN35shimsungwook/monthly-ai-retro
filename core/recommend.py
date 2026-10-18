@@ -1,9 +1,10 @@
 """연계 추천: 내 약점·지금 쓰는 도구를 보고, 결합하면 시너지가 나는 새 기술·플러그인·스킬·MCP를 웹에서 찾아 추천한다.
 
 LangGraph
-    needs(약점·사용 도구 정리) → research(Gemini + Google 검색, 출처 수집) → write(컨설턴트 JSON)
+    needs(약점·사용 도구 정리) → research(웹 검색, 출처 수집, 0개면 한 번 더) → write(컨설턴트 JSON)
     → verify(출처 번호·이미 쓰는 도구 중복·필수 칸) ─ 실패 시 write 재시도(최대 2번)
 없는 도구를 지어내지 않도록, 추천마다 실제 검색 결과 출처 [S번호]를 붙여야 통과한다.
+출처가 끝까지 0개면 write 를 건너뛰고 추천을 비워 둔다.
 """
 import json
 import re
@@ -88,30 +89,79 @@ def gemini_web_search(api_key: str, model: str, notify=None) -> Callable[[str], 
     return lambda prompt: call_with_retry(lambda: once(prompt), "gemini", notify)
 
 
+def _get(obj, key, default=None):
+    return obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default)
+
+
+def openai_sources(resp) -> tuple[list[dict], bool]:
+    """Responses API 응답에서 (출처 목록, 웹 검색을 실제로 했는지)를 뽑는다.
+    출처는 두 곳에 있다: message 의 output_text.annotations(url_citation, 제목 있음)와
+    web_search_call.action.sources(include 로 요청해야 옴, 제목 없음). 둘 다 모아 URL 기준으로 합친다."""
+    sources, seen, searched = [], {}, False
+
+    def add(url, title=""):
+        if not url:
+            return
+        if url in seen:
+            if title and not sources[seen[url]]["title"]:
+                sources[seen[url]]["title"] = title
+            return
+        seen[url] = len(sources)
+        sources.append({"title": title or "", "uri": url})
+
+    for item in _get(resp, "output", None) or []:
+        kind = _get(item, "type", "")
+        if kind in ("web_search_call", "web_search_preview_call"):
+            searched = True
+            for src in _get(_get(item, "action", None), "sources", None) or []:
+                add(_get(src, "url"))
+        for part in _get(item, "content", None) or []:
+            for ann in _get(part, "annotations", None) or []:
+                if _get(ann, "type", "") == "url_citation":
+                    add(_get(ann, "url"), _get(ann, "title", "") or "")
+    # 인용으로 달린 출처(제목 있음)를 앞으로
+    sources.sort(key=lambda x: not x["title"])
+    return sources, searched
+
+
 def openai_web_search(api_key: str, model: str, notify=None) -> Callable[[str], tuple[str, list[dict]]]:
-    """웹 검색 도구가 붙은 ChatGPT 호출(Responses API). 답 속 인용 링크를 출처 목록으로 모은다."""
+    """웹 검색 도구가 붙은 ChatGPT 호출(Responses API). 답 속 인용 링크와 검색 결과 URL을 출처 목록으로 모은다.
+    tool_choice 를 'required' 로 둬서 모델이 검색 없이 기억으로 답하는 것을 막는다(gpt-4o-mini 는 auto 면 검색을 건너뛰기도 한다)."""
     from openai import OpenAI
 
     client = OpenAI(api_key=api_key, max_retries=0, timeout=300)
 
     def once(prompt: str) -> tuple[str, list[dict]]:
         try:
-            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search"}])
-        except Exception as exc:  # 예전 모델은 web_search_preview 만 받는다
-            if "web_search" not in str(exc) and "tool" not in str(exc).lower():
+            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search"}],
+                                           tool_choice="required", include=["web_search_call.action.sources"])
+        except Exception as exc:  # 예전 모델은 web_search_preview 만 받고 include 도 모른다
+            msg = str(exc)
+            if not any(k in msg for k in ("web_search", "include", "tool")):
                 raise
-            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search_preview"}])
-        sources, seen = [], set()
-        for item in resp.output or []:
-            for part in getattr(item, "content", None) or []:
-                for ann in getattr(part, "annotations", None) or []:
-                    url = getattr(ann, "url", None)
-                    if getattr(ann, "type", "") == "url_citation" and url and url not in seen:
-                        seen.add(url)
-                        sources.append({"title": getattr(ann, "title", "") or "", "uri": url})
-        return resp.output_text or "", sources
+            resp = client.responses.create(model=model, input=prompt, tools=[{"type": "web_search_preview"}],
+                                           tool_choice="required")
+        sources, searched = openai_sources(resp)
+        if not searched and notify:
+            notify(":orange[웹 검색 도구가 호출되지 않았습니다]")
+        return _get(resp, "output_text", "") or "", sources
 
     return lambda prompt: call_with_retry(lambda: once(prompt), "openai", notify)
+
+
+NO_SOURCES = "웹 검색 출처가 0개라 이 섹션은 비워 둠 (출처 없는 내용을 지어내지 않음)"
+RETRY_HINT = ("\n\n반드시 웹 검색 도구로 실제 페이지를 찾아 읽고, 문장마다 그 페이지의 인용 링크를 달아라. "
+              "검색으로 확인하지 못한 숫자·이름은 쓰지 마라.")
+
+
+def search_with_sources(searcher: Callable[[str], tuple[str, list[dict]]], prompt: str,
+                        tries: int = 2) -> tuple[str, list[dict]]:
+    """출처가 0개면 검색을 강조한 프롬프트로 다시 검색한다(최대 tries 번). 끝까지 0개면 ('', [])."""
+    for i in range(tries):
+        text, sources = searcher(prompt if i == 0 else prompt + RETRY_HINT)
+        if sources:
+            return text, sources
+    return "", []
 
 
 def web_search(api_key: str, model: str, notify=None):
@@ -158,7 +208,9 @@ def build_graph(llm, searcher: Callable[[str], tuple[str, list[dict]]]):
 
     def research(state: RecState) -> RecState:
         inv = json.dumps(state["inventory"], ensure_ascii=False)
-        text, sources = searcher(RESEARCH_PROMPT.format(inventory=inv, needs=state["needs"]))
+        text, sources = search_with_sources(searcher, RESEARCH_PROMPT.format(inventory=inv, needs=state["needs"]))
+        if not sources:  # 출처 없이 쓰면 지어낸 추천이 된다 → 쓰지 않고 끝낸다
+            return {"research": "", "sources": [], "draft": {"items": []}, "errors": [NO_SOURCES]}
         return {"research": text, "sources": sources}
 
     def write(state: RecState) -> RecState:
@@ -188,7 +240,7 @@ def build_graph(llm, searcher: Callable[[str], tuple[str, list[dict]]]):
         g.add_node(name, fn)
     g.add_edge(START, "needs")
     g.add_edge("needs", "research")
-    g.add_edge("research", "write")
+    g.add_conditional_edges("research", lambda st: "write" if st["sources"] else END, {"write": "write", END: END})
     g.add_edge("write", "verify")
     g.add_conditional_edges("verify", route, {"write": "write", END: END})
     return g.compile()
@@ -206,5 +258,6 @@ def recommend(llm, searcher, weaknesses: list[dict], inventory: dict) -> dict:
                 n = int(x)
                 if 1 <= n <= len(sources):
                     links.append(sources[n - 1])
-        items.append({**it, "links": links})
+        if links:  # 실제 출처가 안 붙은 추천은 버린다
+            items.append({**it, "links": links})
     return {"items": items, "warnings": out.get("errors", []), "attempts": out.get("attempts")}

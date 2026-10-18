@@ -2,7 +2,10 @@
 config.local.json
 data/summaries/
 data/rules_override.json
-reports/
+reports/*
+!reports/0-initial.analysis.json
+!reports/0-initial-agent.analysis.json
+!reports/baseline/
 .streamlit/secrets.toml
 __pycache__/
 .venv/
